@@ -1,12 +1,12 @@
-# Electron Orbital Cipher v2.0
+# Electron Orbital Cipher
 **AES-256 Encryption with Quantum-Inspired Orbital Visualization**
 
-Siddhi Mahajan · Parth Lohia · Ayush Kothari · Prof. Khushbu Chauhan  
+Siddhi Mahajan
 MPSTME, SVKM's NMIMS, Mumbai
 
 ---
 
-## What's New in v2.0
+## What's in 
 - **Dynamic key-dependent S-boxes** via SHA-256(key ∥ orbital_name)
 - **Avalanche Effect experiment** — measures cryptographic diffusion (30 trials)
 - **Shannon Entropy analysis** — validates randomness at each pipeline stage
@@ -83,7 +83,7 @@ Plaintext → Binary → Orbital Permutation → AES-CBC Encrypt → Base64
 
 ---
 
-## For the Paper (Results to report)
+## Results to report
 
 Run these after connecting backend:
 
@@ -93,15 +93,3 @@ Run these after connecting backend:
 
 These three experiments constitute the experimental validation section.
 
----
-
-## Deployment Options
-
-**For CV / Portfolio:**
-- Host `frontend/index.html` on GitHub Pages (free, instant)
-- Deploy backend to Render.com or Railway.app (free tier)
-- Update `BACKEND_URL` in the HTML to your deployed URL
-
-**For Demo:**
-- Frontend works standalone — demo mode runs entirely in browser
-- Share the GitHub Pages link directly
