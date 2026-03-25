@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electron Orbital Cipher</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #050810;
+  --surface: #0b0f1a;
+  --surface2: #111827;
+  --border: #1e2d4a;
+  --border-bright: #2a4a7a;
+  --text: #e8f4ff;
+  --muted: #4a6fa5;
+  --dim: #2a3f5f;
+  --s: #00d4ff;
+  --p: #7c3aed;
+  --d: #059669;
+  --f: #d97706;
+  --accent: #00d4ff;
+  --accent-glow: rgba(0,212,255,0.15);
+  --danger: #ef4444;
+  --success: #10b981;
+  --mono: 'Space Mono', monospace;
+  --display: 'Syne', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Background ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 20%, rgba(0,80,160,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(124,58,237,0.06) 0%, transparent 60%),
+    repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(30,45,74,0.3) 40px),
+    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(30,45,74,0.3) 40px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Layout ── */
+.wrapper {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 48px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header-left {}
+
+.logo-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.orbital-icon {
+  width: 40px;
+  height: 40px;
+  position: relative;
+}
+
+.orbital-icon svg { width: 100%; height: 100%; }
+
+h1 {
+  font-family: var(--display);
+  font-size: clamp(22px, 4vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text);
+  line-height: 1;
+}
+
+h1 span { color: var(--accent); }
+
+.tagline {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+.header-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.badge {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 1px solid;
+  color: var(--accent);
+  border-color: var(--border-bright);
+  background: rgba(0,212,255,0.05);
+}
+
+/* ── Nav Tabs ── */
+.nav {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 32px;
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-tab {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.2s;
+}
+
+.nav-tab:hover { color: var(--text); }
+.nav-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ── Panel ── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+.card-title {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── Grid ── */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media(max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
+
+/* ── Form Elements ── */
+.field { margin-bottom: 16px; }
+
+.field label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+textarea, input[type="text"], input[type="password"] {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 12px 14px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+textarea:focus, input:focus {
+  border-color: var(--border-bright);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+textarea { min-height: 100px; }
+
+/* ── Buttons ── */
+.btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 12px 28px;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: none;
+}
+
+.btn-primary {
+  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.btn-primary:hover {
+  background: transparent;
+  color: var(--accent);
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.btn-secondary {
+  color: var(--muted);
+  border-color: var(--border);
+}
+
+.btn-secondary:hover { color: var(--text); border-color: var(--border-bright); }
+
+.btn-danger { color: var(--danger); border-color: var(--danger); }
+.btn-danger:hover { background: var(--danger); color: #fff; }
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+/* ── Output ── */
+.output-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 14px;
+  font-size: 12px;
+  word-break: break-all;
+  line-height: 1.6;
+  min-height: 60px;
+  color: var(--accent);
+  position: relative;
+}
+
+.output-box.success { border-color: var(--success); color: var(--success); }
+.output-box.error { border-color: var(--danger); color: var(--danger); }
+.output-box.plain { color: var(--text); }
+
+.copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── Bit Visualizer ── */
+.bit-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  min-height: 44px;
+  max-height: 120px;
+  overflow: hidden;
+}
+
+.bit {
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-family: var(--mono);
+  border-radius: 2px;
+  transition: all 0.3s;
+}
+
+.bit-1 { background: rgba(0,212,255,0.3); color: var(--accent); border: 1px solid rgba(0,212,255,0.4); }
+.bit-0 { background: rgba(30,45,74,0.5); color: var(--dim); border: 1px solid var(--border); }
+
+.bit-strip-label {
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+/* ── Orbital Mappings ── */
+.orbital-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.orbital-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 12px;
+  border-left: 3px solid;
+}
+
+.orbital-card.s { border-left-color: var(--s); }
+.orbital-card.p { border-left-color: var(--p); }
+.orbital-card.d { border-left-color: var(--d); }
+.orbital-card.f { border-left-color: var(--f); }
+
+.orbital-label {
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.orbital-card.s .orbital-label { color: var(--s); }
+.orbital-card.p .orbital-label { color: var(--p); }
+.orbital-card.d .orbital-label { color: var(--d); }
+.orbital-card.f .orbital-label { color: var(--f); }
+
+.orbital-bits {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.arrow-row {
+  font-size: 10px;
+  color: var(--muted);
+  margin: 4px 0;
+}
+
+/* ── Experiment Charts ── */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 16px;
+  text-align: center;
+}
+
+.stat-value {
+  font-family: var(--display);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-value.good { color: var(--success); }
+.stat-value.warn { color: var(--f); }
+
+.stat-label {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── Bar Chart ── */
+.bar-chart { padding: 12px 0; }
+
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.bar-label {
+  font-size: 10px;
+  color: var(--muted);
+  width: 60px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.bar-track {
+  flex: 1;
+  height: 20px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), rgba(0,212,255,0.4));
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  position: relative;
+}
+
+.bar-fill::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+.bar-val {
+  font-size: 10px;
+  color: var(--text);
+  width: 60px;
+  flex-shrink: 0;
+}
+
+/* ── Entropy bars ── */
+.entropy-row { display: flex; flex-direction: column; gap: 12px; }
+
+.entropy-item {}
+
+.entropy-track {
+  height: 28px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.entropy-fill {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+  font-size: 10px;
+  font-family: var(--mono);
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+}
+
+.entropy-fill.e1 { background: rgba(239,68,68,0.3); color: var(--danger); border-right: 2px solid var(--danger); }
+.entropy-fill.e2 { background: rgba(245,158,11,0.3); color: var(--f); border-right: 2px solid var(--f); }
+.entropy-fill.e3 { background: rgba(0,212,255,0.3); color: var(--accent); border-right: 2px solid var(--accent); }
+
+/* ── Timeline/Timing chart ── */
+.timing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.timing-cell {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 12px;
+  text-align: center;
+}
+
+.timing-size {
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.timing-val {
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.timing-unit { font-size: 10px; color: var(--muted); }
+
+/* ── Loading ── */
+.loading {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 12px 0;
+}
+
+.loading.active { display: flex; }
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Status ── */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 1px solid;
+}
+
+.status-pill.ok { color: var(--success); border-color: var(--success); background: rgba(16,185,129,0.05); }
+.status-pill.err { color: var(--danger); border-color: var(--danger); background: rgba(239,68,68,0.05); }
+.status-pill.pending { color: var(--muted); border-color: var(--border); }
+
+/* ── Info Table ── */
+.info-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.info-table th {
+  text-align: left;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.info-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.info-table tr:last-child td { border-bottom: none; }
+.info-table td:first-child { color: var(--muted); }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-bright); }
+
+/* ── API Notice ── */
+.api-notice {
+  font-size: 10px;
+  color: var(--muted);
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.demo-mode-bar {
+  background: rgba(0,212,255,0.06);
+  border: 1px solid rgba(0,212,255,0.2);
+  padding: 10px 16px;
+  font-size: 11px;
+  color: var(--accent);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Animations ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card { animation: fadeIn 0.3s ease forwards; }
+
+.glow-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+  display: inline-block;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ── About section ── */
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.about-block {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 16px;
+}
+
+.about-block-title {
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.about-block p {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.orbital-legend {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.orbital-legend-item {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 12px;
+  text-align: center;
+  border-top: 3px solid;
+}
+.orbital-legend-item.s { border-top-color: var(--s); }
+.orbital-legend-item.p { border-top-color: var(--p); }
+.orbital-legend-item.d { border-top-color: var(--d); }
+.orbital-legend-item.f { border-top-color: var(--f); }
+
+.orbital-legend-name {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.s .orbital-legend-name { color: var(--s); }
+.p .orbital-legend-name { color: var(--p); }
+.d .orbital-legend-name { color: var(--d); }
+.f .orbital-legend-name { color: var(--f); }
+
+.orbital-legend-bits { font-size: 10px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-line">
+        <div class="orbital-icon">
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="20" cy="20" rx="18" ry="7" stroke="#00d4ff" stroke-width="1.2" opacity="0.6"/>
+            <ellipse cx="20" cy="20" rx="18" ry="7" stroke="#7c3aed" stroke-width="1.2" opacity="0.6" transform="rotate(60 20 20)"/>
+            <ellipse cx="20" cy="20" rx="18" ry="7" stroke="#059669" stroke-width="1.2" opacity="0.6" transform="rotate(120 20 20)"/>
+            <circle cx="20" cy="20" r="3" fill="#00d4ff"/>
+          </svg>
+        </div>
+        <h1>Electron Orbital <span>Cipher</span></h1>
+      </div>
+      <p class="tagline">AES-256 · Orbital Permutation · Quantum-Inspired Visualization</p>
+    </div>
+    <div class="header-badges">
+      <span class="glow-dot"></span>
+      <span class="badge">v2.0</span>
+      <span class="badge">Research</span>
+    </div>
+  </header>
+
+  <!-- Demo mode notice -->
+  <div class="demo-mode-bar">
+    <span class="glow-dot"></span>
+    <span id="mode-label">Demo Mode — running in-browser simulation. Connect backend at localhost:5000 for full functionality.</span>
+    <button class="btn btn-secondary" onclick="checkBackend()" style="padding:4px 12px;font-size:9px;margin-left:auto;">Connect Backend</button>
+  </div>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <button class="nav-tab active" onclick="switchTab('encrypt', this)">Encrypt</button>
+    <button class="nav-tab" onclick="switchTab('decrypt', this)">Decrypt</button>
+    <button class="nav-tab" onclick="switchTab('experiments', this)">Experiments</button>
+    <button class="nav-tab" onclick="switchTab('about', this)">About</button>
+  </nav>
+
+  <!-- ═══════════════ ENCRYPT PANEL ═══════════════ -->
+  <div id="panel-encrypt" class="panel active">
+
+    <div class="grid-2">
+      <div>
+        <div class="card">
+          <div class="card-title">Input</div>
+          <div class="field">
+            <label>Plaintext</label>
+            <textarea id="enc-plaintext" placeholder="Enter message to encrypt...">Cyber Security Research</textarea>
+          </div>
+          <div class="field">
+            <label>Password / Key</label>
+            <input type="password" id="enc-password" placeholder="Encryption password" value="orbital_key_2024">
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="doEncrypt()">Encrypt →</button>
+            <button class="btn btn-secondary" onclick="clearEncrypt()">Clear</button>
+          </div>
+          <div class="loading" id="enc-loading">
+            <div class="spinner"></div>
+            <span>Generating orbital S-boxes & encrypting...</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="card-title">Ciphertext Output</div>
+          <div style="position:relative">
+            <div class="output-box" id="enc-output" style="min-height:80px">—</div>
+            <button class="copy-btn" onclick="copyText('enc-output')">Copy</button>
+          </div>
+          <div style="margin-top:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+            <span id="enc-status" class="status-pill pending">Awaiting input</span>
+            <span id="enc-meta" style="font-size:10px;color:var(--muted)"></span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Bit Statistics</div>
+          <div id="enc-stats" style="font-size:12px;color:var(--muted)">Run encryption to see bit-level analysis.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bit Visualizer -->
+    <div class="card" id="bit-vis-card" style="display:none">
+      <div class="card-title">Bit Visualizer</div>
+      <div class="grid-2">
+        <div>
+          <div class="bit-strip-label">Original Binary</div>
+          <div class="bit-strip" id="orig-bits"></div>
+        </div>
+        <div>
+          <div class="bit-strip-label">After Orbital Permutation</div>
+          <div class="bit-strip" id="perm-bits"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Orbital Mappings -->
+    <div class="card" id="orbital-card" style="display:none">
+      <div class="card-title">Orbital Segment Mappings (first 20 segments)</div>
+      <div class="orbital-grid" id="orbital-grid"></div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════ DECRYPT PANEL ═══════════════ -->
+  <div id="panel-decrypt" class="panel">
+    <div class="grid-2">
+      <div>
+        <div class="card">
+          <div class="card-title">Input</div>
+          <div class="field">
+            <label>Ciphertext (Base64)</label>
+            <textarea id="dec-ciphertext" placeholder="Paste Base64 ciphertext here..." style="min-height:120px"></textarea>
+          </div>
+          <div class="field">
+            <label>Password / Key</label>
+            <input type="password" id="dec-password" placeholder="Decryption password" value="orbital_key_2024">
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="doDecrypt()">Decrypt →</button>
+            <button class="btn btn-secondary" onclick="pasteFromEncrypt()">Paste from Encrypt</button>
+          </div>
+          <div class="loading" id="dec-loading">
+            <div class="spinner"></div>
+            <span>Reversing orbital permutations...</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="card-title">Recovered Plaintext</div>
+          <div style="position:relative">
+            <div class="output-box plain" id="dec-output" style="min-height:80px">—</div>
+            <button class="copy-btn" onclick="copyText('dec-output')">Copy</button>
+          </div>
+          <div style="margin-top:12px">
+            <span id="dec-status" class="status-pill pending">Awaiting input</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Process</div>
+          <table class="info-table">
+            <tr><td>Step 1</td><td>Base64 decode → extract salt, IV, length</td></tr>
+            <tr><td>Step 2</td><td>Derive AES-256 key via PBKDF2 (100K iter)</td></tr>
+            <tr><td>Step 3</td><td>AES-CBC decrypt ciphertext</td></tr>
+            <tr><td>Step 4</td><td>Regenerate SHA-256 orbital S-boxes</td></tr>
+            <tr><td>Step 5</td><td>Apply inverse permutation → recover plaintext</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ EXPERIMENTS PANEL ═══════════════ -->
+  <div id="panel-experiments" class="panel">
+
+    <div class="api-notice">
+      <span class="glow-dot"></span>
+      Experiments require backend connection for accurate results. Demo mode shows simulated data.
+    </div>
+
+    <!-- Avalanche -->
+    <div class="card">
+      <div class="card-title">① Avalanche Effect Analysis</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+        Flipping 1 bit in the plaintext should flip ~50% of ciphertext bits. Strong ciphers approach this theoretical maximum.
+      </p>
+      <div class="grid-2">
+        <div>
+          <div class="field">
+            <label>Test Plaintext</label>
+            <input type="text" id="av-plaintext" value="Hello World Cipher Test">
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" id="av-password" value="test_key">
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="runAvalanche()">Run Test (30 trials)</button>
+          </div>
+          <div class="loading" id="av-loading">
+            <div class="spinner"></div>
+            <span>Running 30 avalanche trials...</span>
+          </div>
+        </div>
+        <div id="av-results">
+          <div class="stat-row">
+            <div class="stat-box">
+              <div class="stat-value" id="av-mean">—</div>
+              <div class="stat-label">Mean %</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value" id="av-std">—</div>
+              <div class="stat-label">Std Dev</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value good">50%</div>
+              <div class="stat-label">Ideal</div>
+            </div>
+          </div>
+          <div class="bar-chart" id="av-chart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Entropy -->
+    <div class="card">
+      <div class="card-title">② Shannon Entropy Analysis</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+        Maximum entropy = 8.0 bits/byte. Good encryption produces near-maximum entropy, indicating high randomness.
+      </p>
+      <div class="grid-2">
+        <div>
+          <div class="field">
+            <label>Test Plaintext</label>
+            <input type="text" id="en-plaintext" value="Hello World Cipher Test">
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" id="en-password" value="test_key">
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="runEntropy()">Measure Entropy</button>
+          </div>
+          <div class="loading" id="en-loading">
+            <div class="spinner"></div>
+            <span>Computing Shannon entropy...</span>
+          </div>
+        </div>
+        <div id="en-results">
+          <div class="entropy-row">
+            <div class="entropy-item">
+              <div style="font-size:10px;color:var(--muted);letter-spacing:1px">Plaintext</div>
+              <div class="entropy-track">
+                <div class="entropy-fill e1" id="en-plain-bar" style="width:0%">—</div>
+              </div>
+            </div>
+            <div class="entropy-item">
+              <div style="font-size:10px;color:var(--muted);letter-spacing:1px">After Orbital Permutation</div>
+              <div class="entropy-track">
+                <div class="entropy-fill e2" id="en-perm-bar" style="width:0%">—</div>
+              </div>
+            </div>
+            <div class="entropy-item">
+              <div style="font-size:10px;color:var(--muted);letter-spacing:1px">AES Ciphertext</div>
+              <div class="entropy-track">
+                <div class="entropy-fill e3" id="en-aes-bar" style="width:0%">—</div>
+              </div>
+            </div>
+          </div>
+          <div style="font-size:10px;color:var(--dim);margin-top:8px">Max possible: 8.0 bits/byte</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timing -->
+    <div class="card">
+      <div class="card-title">③ Performance Overhead Analysis</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+        Measures encryption time across message sizes to quantify overhead added by orbital permutation layer.
+      </p>
+      <div class="btn-row" style="margin-bottom:16px">
+        <button class="btn btn-primary" onclick="runTiming()">Run Benchmark</button>
+      </div>
+      <div class="loading" id="tm-loading">
+        <div class="spinner"></div>
+        <span>Benchmarking across message sizes...</span>
+      </div>
+      <div class="timing-grid" id="tm-results"></div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════ ABOUT PANEL ═══════════════ -->
+  <div id="panel-about" class="panel">
+    <div class="card">
+      <div class="card-title">About This System</div>
+      <div class="about-grid">
+        <div class="about-block">
+          <div class="about-block-title">What it does</div>
+          <p>Integrates AES-256 encryption with atomic electron orbital-based bit permutation to produce structured, visually interpretable ciphertext. Designed for both secure communication and cryptographic education.</p>
+        </div>
+        <div class="about-block">
+          <div class="about-block-title">Key Innovation</div>
+          <p>Dynamic S-boxes derived from SHA-256(key ∥ orbital_name) make permutations key-dependent — every password generates a unique permutation topology, eliminating static mapping vulnerabilities.</p>
+        </div>
+        <div class="about-block">
+          <div class="about-block-title">Security Stack</div>
+          <p>PBKDF2 (100,000 iterations) for key derivation · AES-256-CBC for encryption · Orbital S-box permutation for structured visual confusion · Base64 encoding for transport.</p>
+        </div>
+        <div class="about-block">
+          <div class="about-block-title">Research Context</div>
+          <p>Developed at MPSTME, NMIMS Mumbai. Targeting publication at IEEE INDICON / ICCCNT. Demonstrates cryptographic robustness via avalanche effect, Shannon entropy, and timing analysis.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Orbital Configuration</div>
+      <div class="orbital-legend">
+        <div class="orbital-legend-item s">
+          <div class="orbital-legend-name">s</div>
+          <div class="orbital-legend-bits">2 bits · spherical</div>
+        </div>
+        <div class="orbital-legend-item p">
+          <div class="orbital-legend-name">p</div>
+          <div class="orbital-legend-bits">6 bits · dumbbell</div>
+        </div>
+        <div class="orbital-legend-item d">
+          <div class="orbital-legend-name">d</div>
+          <div class="orbital-legend-bits">10 bits · cloverleaf</div>
+        </div>
+        <div class="orbital-legend-item f">
+          <div class="orbital-legend-name">f</div>
+          <div class="orbital-legend-bits">14 bits · complex</div>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-top:16px;line-height:1.6">
+        Segments cycle in order s→p→d→f→s→… across the full binary representation of the plaintext.
+        Each segment is permuted by its orbital-specific key-derived S-box. Total segment size: 32 bits per cycle.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">System Architecture</div>
+      <table class="info-table">
+        <thead><tr><th>Component</th><th>Technology</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td>Key Derivation</td><td>PBKDF2-SHA256, 100K iter</td><td>Password → 256-bit AES key</td></tr>
+          <tr><td>S-box Generation</td><td>SHA-256(key ∥ orbital)</td><td>Key-dependent permutation tables</td></tr>
+          <tr><td>Permutation</td><td>Fisher-Yates shuffle</td><td>Orbital-topology bit rearrangement</td></tr>
+          <tr><td>Encryption</td><td>AES-256-CBC + PKCS7</td><td>Cryptographic security core</td></tr>
+          <tr><td>Backend</td><td>Python 3 · Flask</td><td>REST API</td></tr>
+          <tr><td>Frontend</td><td>HTML · CSS · Vanilla JS</td><td>Interactive interface</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /wrapper -->
+
+<script>
+// ══════════════════════════════════════════════════════════
+// DEMO MODE — in-browser simulation (no backend required)
+// ══════════════════════════════════════════════════════════
+
+let BACKEND_URL = 'http://localhost:5000';
+let backendAvailable = false;
+let lastCiphertext = '';
+
+// Check if backend is available
+async function checkBackend() {
+  try {
+    const r = await fetch(BACKEND_URL + '/api/health', { signal: AbortSignal.timeout(2000) });
+    if (r.ok) {
+      backendAvailable = true;
+      document.getElementById('mode-label').textContent = '✓ Backend connected at localhost:5000 — full functionality active.';
+      document.querySelector('.demo-mode-bar').style.background = 'rgba(16,185,129,0.06)';
+      document.querySelector('.demo-mode-bar').style.borderColor = 'rgba(16,185,129,0.3)';
+      document.querySelector('.demo-mode-bar').style.color = 'var(--success)';
+    }
+  } catch {
+    document.getElementById('mode-label').textContent = 'Backend not found at localhost:5000 — using demo mode.';
+  }
+}
+
+checkBackend();
+
+// ── Tab Navigation ─────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  el.classList.add('active');
+}
+
+// ── Copy ───────────────────────────────────────────────────
+function copyText(id) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector(`[onclick="copyText('${id}')"]`);
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+function clearEncrypt() {
+  document.getElementById('enc-plaintext').value = '';
+  document.getElementById('enc-output').textContent = '—';
+  document.getElementById('enc-output').className = 'output-box';
+  document.getElementById('enc-status').className = 'status-pill pending';
+  document.getElementById('enc-status').textContent = 'Awaiting input';
+  document.getElementById('enc-meta').textContent = '';
+  document.getElementById('enc-stats').textContent = 'Run encryption to see bit-level analysis.';
+  document.getElementById('bit-vis-card').style.display = 'none';
+  document.getElementById('orbital-card').style.display = 'none';
+}
+
+function pasteFromEncrypt() {
+  if (lastCiphertext) {
+    document.getElementById('dec-ciphertext').value = lastCiphertext;
+    document.getElementById('dec-password').value = document.getElementById('enc-password').value;
+  }
+}
+
+// ── Demo Simulation Helpers ────────────────────────────────
+function textToBinary(text) {
+  return text.split('').map(c => c.charCodeAt(0).toString(2).padStart(8, '0')).join('');
+}
+
+function simpleHash(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = (h * 0x01000193) >>> 0;
+  }
+  return h;
+}
+
+function generateDemoSbox(orbital, keyStr) {
+  const lengths = { s: 2, p: 6, d: 10, f: 14 };
+  const len = lengths[orbital];
+  const seed = simpleHash(keyStr + orbital);
+  const arr = Array.from({ length: len }, (_, i) => i);
+  let state = seed;
+  for (let i = arr.length - 1; i > 0; i--) {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    const j = state % (i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function demoPermute(binary, password) {
+  const orbitals = [['s',2],['p',6],['d',10],['f',14]];
+  const sboxes = {};
+  orbitals.forEach(([o]) => sboxes[o] = generateDemoSbox(o, password));
+  let result = '';
+  let idx = 0, oi = 0;
+  const mappings = [];
+  while (idx < binary.length) {
+    const [orbital, bits] = orbitals[oi % 4];
+    let seg = binary.slice(idx, idx + bits).padEnd(bits, '0');
+    const sbox = sboxes[orbital];
+    let perm = sbox.map(i => i < seg.length ? seg[i] : '0').join('');
+    result += perm;
+    mappings.push({ orbital, before: seg, after: perm });
+    idx += bits;
+    oi++;
+  }
+  return { permuted: result, mappings: mappings.slice(0, 20) };
+}
+
+function demoBase64Encrypt(plaintext, password) {
+  const binary = textToBinary(plaintext);
+  const { permuted, mappings } = demoPermute(binary, password);
+  // Fake base64 ciphertext
+  const fakeBytes = new Uint8Array(36 + Math.ceil(plaintext.length / 16) * 16);
+  crypto.getRandomValues(fakeBytes);
+  const b64 = btoa(String.fromCharCode(...fakeBytes));
+  return { ciphertext: b64, mappings, orig_binary: binary, permuted_binary: permuted };
+}
+
+// ── Encrypt ────────────────────────────────────────────────
+async function doEncrypt() {
+  const plaintext = document.getElementById('enc-plaintext').value.trim();
+  const password = document.getElementById('enc-password').value;
+  if (!plaintext || !password) {
+    alert('Enter both plaintext and password.');
+    return;
+  }
+
+  document.getElementById('enc-loading').classList.add('active');
+  document.getElementById('enc-output').textContent = '—';
+  document.getElementById('enc-status').className = 'status-pill pending';
+  document.getElementById('enc-status').textContent = 'Processing...';
+
+  let data;
+  try {
+    if (backendAvailable) {
+      const res = await fetch(BACKEND_URL + '/api/encrypt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plaintext, password })
+      });
+      data = await res.json();
+      if (data.error) throw new Error(data.error);
+    } else {
+      await new Promise(r => setTimeout(r, 600)); // simulate latency
+      data = demoBase64Encrypt(plaintext, password);
+    }
+
+    lastCiphertext = data.ciphertext;
+    document.getElementById('enc-output').textContent = data.ciphertext;
+    document.getElementById('enc-output').className = 'output-box';
+    document.getElementById('enc-status').className = 'status-pill ok';
+    document.getElementById('enc-status').textContent = '✓ Encrypted';
+    document.getElementById('enc-meta').textContent =
+      `${data.original_length || data.orig_binary?.length || 0} → ${data.permuted_length || data.permuted_binary?.length || 0} bits`;
+
+    // Stats
+    const orig = data.orig_binary || data.original_bits || '';
+    const perm = data.permuted_binary || data.permuted_bits || '';
+    const ones_orig = (orig.match(/1/g) || []).length;
+    const ones_perm = (perm.match(/1/g) || []).length;
+    document.getElementById('enc-stats').innerHTML = `
+      <table class="info-table">
+        <tr><td>Original bits</td><td>${orig.length}</td></tr>
+        <tr><td>Ones (original)</td><td>${ones_orig} (${orig.length ? Math.round(ones_orig/orig.length*100) : 0}%)</td></tr>
+        <tr><td>Ones (permuted)</td><td>${ones_perm} (${perm.length ? Math.round(ones_perm/perm.length*100) : 0}%)</td></tr>
+        <tr><td>Bit change rate</td><td>${orig.length ? Math.round(orig.split('').filter((b,i)=>b!==perm[i]).length/orig.length*100) : 0}%</td></tr>
+        <tr><td>Ciphertext length</td><td>${data.ciphertext.length} chars (Base64)</td></tr>
+      </table>`;
+
+    // Bit visualizer
+    renderBitStrip('orig-bits', orig.slice(0, 200));
+    renderBitStrip('perm-bits', perm.slice(0, 200));
+    document.getElementById('bit-vis-card').style.display = 'block';
+
+    // Orbital cards
+    if (data.mappings && data.mappings.length) {
+      renderOrbitalMappings(data.mappings);
+      document.getElementById('orbital-card').style.display = 'block';
+    }
+
+  } catch (e) {
+    document.getElementById('enc-output').textContent = 'Error: ' + e.message;
+    document.getElementById('enc-output').className = 'output-box error';
+    document.getElementById('enc-status').className = 'status-pill err';
+    document.getElementById('enc-status').textContent = 'Error';
+  } finally {
+    document.getElementById('enc-loading').classList.remove('active');
+  }
+}
+
+// ── Decrypt ────────────────────────────────────────────────
+async function doDecrypt() {
+  const ciphertext = document.getElementById('dec-ciphertext').value.trim();
+  const password = document.getElementById('dec-password').value;
+  if (!ciphertext || !password) { alert('Enter ciphertext and password.'); return; }
+
+  document.getElementById('dec-loading').classList.add('active');
+  document.getElementById('dec-output').textContent = '—';
+  document.getElementById('dec-status').className = 'status-pill pending';
+  document.getElementById('dec-status').textContent = 'Decrypting...';
+
+  try {
+    if (backendAvailable) {
+      const res = await fetch(BACKEND_URL + '/api/decrypt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ciphertext, password })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      document.getElementById('dec-output').textContent = data.plaintext;
+      document.getElementById('dec-status').className = 'status-pill ok';
+      document.getElementById('dec-status').textContent = '✓ Decrypted';
+    } else {
+      await new Promise(r => setTimeout(r, 500));
+      document.getElementById('dec-output').textContent =
+        '[Demo] Backend required for real decryption. Connect localhost:5000 to decrypt.';
+      document.getElementById('dec-status').className = 'status-pill pending';
+      document.getElementById('dec-status').textContent = 'Demo mode';
+    }
+  } catch (e) {
+    document.getElementById('dec-output').textContent = 'Error: ' + e.message;
+    document.getElementById('dec-status').className = 'status-pill err';
+    document.getElementById('dec-status').textContent = 'Failed';
+  } finally {
+    document.getElementById('dec-loading').classList.remove('active');
+  }
+}
+
+// ── Render Bit Strip ───────────────────────────────────────
+function renderBitStrip(id, binary) {
+  const el = document.getElementById(id);
+  el.innerHTML = '';
+  binary.split('').forEach(b => {
+    const d = document.createElement('div');
+    d.className = 'bit ' + (b === '1' ? 'bit-1' : 'bit-0');
+    d.textContent = b;
+    el.appendChild(d);
+  });
+}
+
+// ── Render Orbital Mappings ────────────────────────────────
+function renderOrbitalMappings(mappings) {
+  const grid = document.getElementById('orbital-grid');
+  grid.innerHTML = '';
+  mappings.forEach(m => {
+    const card = document.createElement('div');
+    card.className = `orbital-card ${m.orbital}`;
+    const colors = { s: 'var(--s)', p: 'var(--p)', d: 'var(--d)', f: 'var(--f)' };
+    card.innerHTML = `
+      <div class="orbital-label">${m.orbital}-orbital · ${m.before.length} bits</div>
+      <div class="orbital-bits" id="ob-before-${Math.random()}">
+        ${m.before.split('').map(b => `<div class="bit ${b==='1'?'bit-1':'bit-0'}" style="font-size:7px;width:12px;height:12px">${b}</div>`).join('')}
+      </div>
+      <div class="arrow-row" style="color:${colors[m.orbital]}">↓ permute</div>
+      <div class="orbital-bits">
+        ${m.after.split('').map(b => `<div class="bit ${b==='1'?'bit-1':'bit-0'}" style="font-size:7px;width:12px;height:12px;border-color:${colors[m.orbital]}40">${b}</div>`).join('')}
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+// ── Avalanche Test ─────────────────────────────────────────
+async function runAvalanche() {
+  document.getElementById('av-loading').classList.add('active');
+  document.getElementById('av-mean').textContent = '—';
+  document.getElementById('av-std').textContent = '—';
+  document.getElementById('av-chart').innerHTML = '';
+
+  try {
+    let data;
+    if (backendAvailable) {
+      const res = await fetch(BACKEND_URL + '/api/experiments/avalanche', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plaintext: document.getElementById('av-plaintext').value,
+          password: document.getElementById('av-password').value,
+          trials: 30
+        })
+      });
+      data = await res.json();
+    } else {
+      await new Promise(r => setTimeout(r, 1200));
+      // Simulate realistic avalanche scores
+      const scores = Array.from({length:30}, () => 45 + Math.random() * 10);
+      const mean = scores.reduce((a,b) => a+b) / scores.length;
+      const std = Math.sqrt(scores.map(x => (x-mean)**2).reduce((a,b)=>a+b) / scores.length);
+      data = { mean: mean.toFixed(2), std: std.toFixed(2), trials: 30, scores: scores.map(s => +s.toFixed(2)) };
+    }
+
+    document.getElementById('av-mean').textContent = data.mean + '%';
+    document.getElementById('av-mean').className = 'stat-value ' + (data.mean > 45 ? 'good' : 'warn');
+    document.getElementById('av-std').textContent = '±' + data.std;
+
+    // Render bar chart of scores
+    const chart = document.getElementById('av-chart');
+    chart.innerHTML = '';
+    const scores = data.scores || [];
+    scores.forEach((score, i) => {
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML = `
+        <div class="bar-label">#${i+1}</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${score}%"></div>
+        </div>
+        <div class="bar-val">${score}%</div>`;
+      chart.appendChild(row);
+    });
+  } catch(e) {
+    document.getElementById('av-mean').textContent = 'Err';
+  } finally {
+    document.getElementById('av-loading').classList.remove('active');
+  }
+}
+
+// ── Entropy Test ───────────────────────────────────────────
+async function runEntropy() {
+  document.getElementById('en-loading').classList.add('active');
+  ['en-plain-bar','en-perm-bar','en-aes-bar'].forEach(id => {
+    const el = document.getElementById(id);
+    el.style.width = '0%';
+    el.textContent = '—';
+  });
+
+  try {
+    let data;
+    if (backendAvailable) {
+      const res = await fetch(BACKEND_URL + '/api/experiments/entropy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plaintext: document.getElementById('en-plaintext').value,
+          password: document.getElementById('en-password').value
+        })
+      });
+      data = await res.json();
+    } else {
+      await new Promise(r => setTimeout(r, 600));
+      data = {
+        plaintext_entropy: (3.5 + Math.random()).toFixed(4),
+        permuted_entropy: (6.2 + Math.random() * 0.5).toFixed(4),
+        aes_ciphertext_entropy: (7.85 + Math.random() * 0.14).toFixed(4),
+        max_possible: 8.0
+      };
+    }
+
+    const setBar = (id, val) => {
+      const el = document.getElementById(id);
+      const pct = (val / 8.0 * 100).toFixed(1);
+      el.style.width = pct + '%';
+      el.textContent = `${val} bits/byte`;
+    };
+
+    setTimeout(() => {
+      setBar('en-plain-bar', data.plaintext_entropy);
+      setBar('en-perm-bar', data.permuted_entropy);
+      setBar('en-aes-bar', data.aes_ciphertext_entropy);
+    }, 100);
+
+  } catch(e) {
+    console.error(e);
+  } finally {
+    document.getElementById('en-loading').classList.remove('active');
+  }
+}
+
+// ── Timing Test ────────────────────────────────────────────
+async function runTiming() {
+  document.getElementById('tm-loading').classList.add('active');
+  document.getElementById('tm-results').innerHTML = '';
+
+  try {
+    let data;
+    if (backendAvailable) {
+      const res = await fetch(BACKEND_URL + '/api/experiments/timing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: 'benchmark_key' })
+      });
+      data = await res.json();
+    } else {
+      await new Promise(r => setTimeout(r, 800));
+      data = [
+        { size_bytes: 64,   avg_ms: 0.8 + Math.random() * 0.3 },
+        { size_bytes: 128,  avg_ms: 1.1 + Math.random() * 0.3 },
+        { size_bytes: 512,  avg_ms: 2.4 + Math.random() * 0.5 },
+        { size_bytes: 1024, avg_ms: 4.1 + Math.random() * 0.8 },
+        { size_bytes: 4096, avg_ms: 14.2 + Math.random() * 2 },
+      ].map(d => ({ ...d, avg_ms: +d.avg_ms.toFixed(3) }));
+    }
+
+    const grid = document.getElementById('tm-results');
+    data.forEach(row => {
+      const cell = document.createElement('div');
+      cell.className = 'timing-cell';
+      const label = row.size_bytes >= 1024 ? (row.size_bytes/1024)+'KB' : row.size_bytes+'B';
+      cell.innerHTML = `
+        <div class="timing-size">${label}</div>
+        <div class="timing-val">${row.avg_ms}</div>
+        <div class="timing-unit">ms avg</div>`;
+      grid.appendChild(cell);
+    });
+
+  } catch(e) {
+    console.error(e);
+  } finally {
+    document.getElementById('tm-loading').classList.remove('active');
+  }
+}
+</script>
+</body>
+</html>
